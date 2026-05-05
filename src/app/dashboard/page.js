@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import DashboardWorkspace from "@/components/DashboardWorkspace";
-import LogoutButton from "@/components/LogoutButton";
+import MarketingNav from "@/components/MarketingNav";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -12,25 +12,17 @@ export default async function DashboardPage() {
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
     include: {
-      _count: {
-        select: {
-          feedbacks: true,
-          reviewOpens: true,
-        },
-      },
+      _count: { select: { feedbacks: true, reviewOpens: true } },
     },
   });
 
-  const locationIds = locations.map((location) => location.id);
+  const locationIds = locations.map((l) => l.id);
+
   const feedbacks = await prisma.feedback.findMany({
     where: { locationId: { in: locationIds } },
     orderBy: { createdAt: "desc" },
     take: 200,
-    include: {
-      location: {
-        select: { id: true, name: true, slug: true },
-      },
-    },
+    include: { location: { select: { id: true, name: true, slug: true } } },
   });
 
   const reviewOpens = await prisma.reviewOpen.findMany({
@@ -41,22 +33,21 @@ export default async function DashboardPage() {
   const totalScans = reviewOpens.length;
   const positiveScans = reviewOpens.filter((r) => r.rating >= 4).length;
   const avgRating = totalScans
-    ? (reviewOpens.reduce((sum, item) => sum + item.rating, 0) / totalScans).toFixed(1)
+    ? (reviewOpens.reduce((s, r) => s + r.rating, 0) / totalScans).toFixed(1)
     : "0.0";
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6 text-white">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-semibold">Dashboard</h1>
-            <p className="text-slate-300">
-              Manage locations, monitor sentiment, and filter private feedback.
-            </p>
-          </div>
-          <LogoutButton />
-        </div>
+    <div className="min-h-screen bg-[#060818] text-white">
+      <MarketingNav showMarketingLinks={false} />
 
+      {/* Content */}
+      <main className="mx-auto w-full max-w-7xl px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+          <p className="mt-1 text-slate-400">
+            Manage locations, monitor sentiment, and read private feedback.
+          </p>
+        </div>
         <DashboardWorkspace
           initialLocations={locations}
           initialFeedbacks={feedbacks}
@@ -68,7 +59,7 @@ export default async function DashboardPage() {
             avgRating,
           }}
         />
-      </div>
+      </main>
     </div>
   );
 }
